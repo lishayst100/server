@@ -1,0 +1,29 @@
+PUT http://localhost:3001/api/projects/updateProject/657f1d903e12acc9e1f19c82
+Content-Type: application/json
+
+{
+    "text":"asdasdasad dadad dadasdasdad",
+    "title": "test333",
+    "images":["a","c","ca","da"],
+    "link":"youtube"
+    
+}
+
+###
+POST  http://localhost:3001/upload-image
+Content-Type: application/json
+
+{
+    "credits":"asdasdasad dadad dadasdasdad",
+    "title": "test333",
+    "image":"1702906868388scene.jpg",
+    "link":"youtube",
+    "linkId":"213242342"
+}
+
+###
+DELETE /api/projects/deleteProject/658189b32c63fc414b57f083
+
+
+####
+DELETE http://localhost:3001/api/projects/deleteProject/6581ad35b639957ae53739a4
