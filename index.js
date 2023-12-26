@@ -11,7 +11,7 @@ const app = express()
 connect().catch(e => console.log(e))
 
 //middlewares
-app.use(cors());
+app.use(cors({ origin: 'https://seq-frontend-managment.vercel.app' }));
 app.use(express.json());
 app.use(morgan('dev'))
 
