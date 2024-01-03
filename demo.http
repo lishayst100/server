@@ -26,4 +26,4 @@ DELETE /api/projects/deleteProject/658189b32c63fc414b57f083
 
 
 ####
-DELETE http://localhost:3001/api/projects/deleteProject/6581ad35b639957ae53739a4
+GET http://localhost:3001/api/projects/findProjectByGenre/all

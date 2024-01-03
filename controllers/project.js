@@ -13,9 +13,9 @@ export const getProjects = (req,res)=>{
 
 
 export const addProject = async (req, res) => {
-  const { title,credits, link, linkId } = req.body;
+  const { title,credits, link, linkId ,genres} = req.body;
   const images = req.files;
-
+  console.log(genres)
   try {
     const uploadedImageURLs = [];
 
@@ -31,7 +31,8 @@ export const addProject = async (req, res) => {
       link,
       linkId,
       title,
-      images: uploadedImageURLs
+      images: uploadedImageURLs,
+      genres
     });
 
     await newProject.save();
@@ -69,8 +70,22 @@ export const deleteProject = async (req, res) => {
 }
 
 
-
-
+export const findProjectByGenre = async (req, res) => {
+  try {
+    if (req.params.genre === 'all') {
+    const project = await Project.find({});
+      return res.status(200).json(project);
+    }
+    const project = await Project.find({genres: {$in : [req.params.genre]}});
+    if (!project) {
+      return res.status(404).json({ message: 'Project not found' });
+    }
+    res.status(200).json(project);
+}catch(error){
+  console.error('Error finding project by genre:', error);
+  res.status(500).json({ error: 'Error finding project by genre' });
+}
+}
 
 
 
@@ -98,7 +113,7 @@ export const getOneProject = (req,res) => {
 
 export const myUpdateProject = async (req,res) => {
   const { projectId } = req.params;
-  const { title, credits, link, linkId ,urlImages} = req.body;
+  const { title, credits, link, linkId ,urlImages,genres} = req.body;
   const images = req.files;
   console.log(urlImages)
   
@@ -132,6 +147,7 @@ export const myUpdateProject = async (req,res) => {
     project.credits = credits || project.credits;
     project.link = link || project.link;
     project.linkId = linkId || project.linkId;
+    project.genres = genres || project.genres;
 
 
     await project.save();

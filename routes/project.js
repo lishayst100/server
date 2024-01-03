@@ -1,5 +1,5 @@
 import { Router } from "express";
-import {  deleteProject, getProjects, updateProject,getOneProject, addProject, myUpdateProject } from "../controllers/project.js";
+import {  deleteProject, getProjects, updateProject,getOneProject, addProject, myUpdateProject, findProjectByGenre } from "../controllers/project.js";
 import multer from "multer";
 import { Project } from "../db/schemas/Project.js";
 import cloudinary from "../cloudinary/config.js";
@@ -9,7 +9,7 @@ const router = Router()
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-      cb(null, '/tmp');
+      cb(null, 'tmp/');
     },
     filename: function (req, file, cb) {
       const uniqueSuffix = Date.now();
@@ -32,6 +32,8 @@ const storage = multer.diskStorage({
 router.get('/getProjects',getProjects)
 
 router.get('/getOneProject/:id',getOneProject)
+
+router.get('/findProjectByGenre/:genre', findProjectByGenre)
 
 router.delete('/deleteProject/:projectId', deleteProject);
 
