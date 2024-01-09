@@ -27,3 +27,12 @@ DELETE /api/projects/deleteProject/658189b32c63fc414b57f083
 
 ####
 GET http://localhost:3001/api/projects/findProjectByGenre/all
+
+
+###
+POST  http://localhost:3001/api/mail/sendEmail
+Content-Type: application/json
+
+{
+    "name" : "test", "email": "test@gmail.com", "message": "test test"
+}
