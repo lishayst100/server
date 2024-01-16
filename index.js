@@ -7,6 +7,7 @@ import {projectRouter} from "./routes/project.js";
 import multer from "multer";
 import { Project } from "./db/schemas/Project.js";
 import { mailRouter } from "./routes/mail.js";
+import { carouselRouter } from "./routes/carousel.js";
 
 
 const app = express()
@@ -22,6 +23,7 @@ dotenv.config()
 
 app.use('/api/projects', projectRouter)
 app.use('/api/mail', mailRouter)
+app.use('/api/carousel', carouselRouter)
 const PORT = 3001 
 
 

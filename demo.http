@@ -36,3 +36,6 @@ Content-Type: application/json
 {
     "name" : "test", "email": "test@gmail.com", "message": "test test"
 }
+
+####
+GET http://localhost:3001/api/carousel/
