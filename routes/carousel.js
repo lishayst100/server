@@ -2,6 +2,10 @@ import { Router } from "express";
 import cloudinary from "../cloudinary/config.js";
 import { Carousel } from "../db/schemas/Carousel.js";
 import multer from "multer";
+import util from 'util';
+import fs from 'fs';
+
+const unlinkFile = util.promisify(fs.unlink);
 
 const router = Router();
 
@@ -63,6 +67,11 @@ router.post(
 
       await newProject.save();
 
+
+      for (const image of images) {
+        await unlinkFile(image.path);
+      }
+
       res
         .status(200)
         .json({ message: "Carousel created successfully", newProject });
@@ -109,6 +118,11 @@ router.put('/updateImages/:id', upload.array("carouselImages"), async (req,res) 
 
 
     await carousel.save();
+
+    for (const image of images) {
+      await unlinkFile(image.path);
+    };
+
     res.status(200).json({message: 'carousel updated successfully', updatedcarousel: carousel})
 
 

@@ -2,6 +2,10 @@ import { Router } from "express";
 import { Team } from "../db/schemas/Team.js";
 import cloudinary from "../cloudinary/config.js";
 import multer from "multer";
+import util from 'util';
+import fs from 'fs';
+
+const unlinkFile = util.promisify(fs.unlink);
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -67,6 +71,11 @@ router.post(
         });
   
         await newTeam.save();
+
+
+        for (const image of images) {
+            await unlinkFile(image.path);
+          }
   
         res
           .status(200)
@@ -144,6 +153,11 @@ router.put('/updateTeam/:teamId', upload.array('images'),async (req,res) => {
   
   
       await team.save();
+
+      for (const image of images) {
+        await unlinkFile(image.path);
+      };
+      
       res.status(200).json({message: 'team updated successfully', updatedteam: team})
   
   

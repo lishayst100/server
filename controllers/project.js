@@ -1,5 +1,9 @@
 import { Project } from "../db/schemas/Project.js";
 import cloudinary from "../cloudinary/config.js";
+import util from 'util';
+import fs from 'fs';
+
+const unlinkFile = util.promisify(fs.unlink);
 
 
 
@@ -36,6 +40,10 @@ export const addProject = async (req, res) => {
     });
 
     await newProject.save();
+
+    for (const image of images) {
+      await unlinkFile(image.path);
+    };
 
     res.status(201).json({ message: 'Project created successfully', newProject });
   } catch (error) {
@@ -151,6 +159,11 @@ export const myUpdateProject = async (req,res) => {
 
 
     await project.save();
+
+    for (const image of images) {
+      await unlinkFile(image.path);
+    };
+
     res.status(200).json({message: 'Project updated successfully', updatedProject: project})
 
 
