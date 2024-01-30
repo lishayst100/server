@@ -19,7 +19,9 @@ app.use(express.json());
 app.use(morgan('dev'))
 dotenv.config()
 
-
+app.get('/', (req, res) =>{
+    res.json({message: 'Home page'})
+})
 app.use('/api/projects', projectRouter)
 app.use('/api/mail', mailRouter)
 app.use('/api/carousel', carouselRouter)
