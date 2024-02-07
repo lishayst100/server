@@ -38,4 +38,20 @@ Content-Type: application/json
 }
 
 ####
-GET http://localhost:3001/api/carousel/
+POST http://localhost:3001/api/text/addText
+Content-Type: application/json
+
+{
+    "text" : "SEQUENCE Studio is your boutique destination for captivating video solutions. We specialize in video production for commercials, animations, user interface experiences, and more. Our team of top-notch professionals crafts tailored videos for TV, web, and cinema. From directing to motion design, 2D/3D animation, and color corrections, we handle it all, working closely with our clients at every stage. Nestled in the heart of Moshav Ramot Hashavim, our studio blends creativity and technology in a charming orchard setting with ample parking. Join us in bringing your ideas to life – where innovation meets old-world charm. We look forward to seeing you soon!"
+}
+###
+
+PUT http://localhost:3001/api/text/updateText/65c2470e16e5f7541403208a
+Content-Type: application/json
+
+{
+    "text" : "SEQUENCE Studio is your boutique destination for captivating video solutions. We specialize in video production for commercials, animations, user interface experiences, and more. Our team of top-notch professionals crafts tailored videos for TV, web, and cinema. From directing to motion design, 2D/3D animation, and color corrections, we handle it all, working closely with our clients at every stage. Nestled in the heart of Moshav Ramot Hashavim, our studio blends creativity and technology in a charming orchard setting with ample parking. Join us in bringing your ideas to life – where innovation meets old-world charm. We look forward to seeing you soon!"
+}
+
+###
+GET http://localhost:3001/api/text/65c25fc72ccce926593d1b43

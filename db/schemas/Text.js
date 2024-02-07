@@ -1,7 +1,8 @@
-import mongoose from "mongoose";
+import { Schema, model } from "mongoose";
 
-const textSchema = new mongoose.Schema({
-    text : String
-});
+export const TextAboutSchema = new Schema({
+    text: String
+})
 
-export default mongoose.models.text || mongoose.model('text', textSchema)
+
+export const TextAbout = model('about-text', TextAboutSchema)
