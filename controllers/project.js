@@ -19,7 +19,8 @@ export const getProjects = (req,res)=>{
 export const addProject = async (req, res) => {
   const { title,credits, link, linkId ,genres} = req.body;
   const images = req.files;
-  console.log(genres)
+  
+  
   try {
     const uploadedImageURLs = [];
 
