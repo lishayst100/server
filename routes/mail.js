@@ -21,11 +21,12 @@ router.post('/sendEmail', async (req, res) => {
       from: email, // Sender email
       to: 'lishayst1000@gmail.com', // Receiver email
       subject: 'פנייה חדשה מהאתר',
-      text: `Hi Dvir,/n
-      ${name} left details on the site and wants you to return to him/n
-        His email is: ${email}/n
+      text: `Hi Dvir,\n
+      ${name} left details on the site and wants you to contact with him\n
+        His email is: ${email}\n
         His message: ${message}
-      `,
+      `
+      
       
     };
   
