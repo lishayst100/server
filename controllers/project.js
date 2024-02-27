@@ -37,7 +37,8 @@ export const addProject = async (req, res) => {
       linkId,
       title,
       images: uploadedImageURLs,
-      genres
+      genres,
+      frontImage: uploadedImageURLs[0]
     });
 
     await newProject.save();
@@ -122,7 +123,7 @@ export const getOneProject = (req,res) => {
 
 export const myUpdateProject = async (req,res) => {
   const { projectId } = req.params;
-  const { title, credits, link, linkId ,urlImages,genres} = req.body;
+  const { title, credits, link, linkId ,urlImages,genres,frontImage} = req.body;
   const images = req.files;
   console.log(urlImages)
   
@@ -157,6 +158,7 @@ export const myUpdateProject = async (req,res) => {
     project.link = link || project.link;
     project.linkId = linkId || project.linkId;
     project.genres = genres || project.genres;
+    project.frontImage = frontImage || project.frontImage;
 
 
     await project.save();

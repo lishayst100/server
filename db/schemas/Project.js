@@ -7,7 +7,8 @@ const projectSchema = new mongoose.Schema({
     images: [String],
     credits: String,
     linkId:String,
-    genres: [String]
+    genres: [String],
+    frontImage: String,
     
   });
   
