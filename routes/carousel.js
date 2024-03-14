@@ -4,7 +4,8 @@ import { Carousel } from "../db/schemas/Carousel.js";
 import multer from "multer";
 import util from 'util';
 import fs from 'fs';
-
+import { imagekit } from "../cloudinary/imageKit.js";
+import fsPromises from 'fs/promises'
 
 const unlinkFile = util.promisify(fs.unlink);
 
@@ -58,8 +59,10 @@ router.post(
     try {
       const uploadedImageURLs = [];
       for (const image of images) {
-        const result = await cloudinary.uploader.upload(image.path);
-        uploadedImageURLs.push(result.secure_url);
+        const fileBuffer = await fsPromises.readFile(image.path);
+        const result = await imagekit
+          .upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer})
+          uploadedImageURLs.push(result.url)
       }
 
       const newProject = new Carousel({
@@ -101,8 +104,10 @@ router.put('/updateImages/:id', upload.array("carouselImages"), async (req,res) 
 
     
     for (const image of images) {
-      const result = await cloudinary.uploader.upload(image.path);
-      uploadedImageURLs.push(result.secure_url);
+      const fileBuffer = await fsPromises.readFile(image.path);
+      const result = await imagekit
+        .upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer})
+        uploadedImageURLs.push(result.url)
     }
 
 

@@ -9,6 +9,7 @@ const projectSchema = new mongoose.Schema({
     linkId:String,
     genres: [String],
     frontImage: String,
+    imagesId: [String]
     
   });
   

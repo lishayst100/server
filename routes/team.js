@@ -4,6 +4,8 @@ import cloudinary from "../cloudinary/config.js";
 import multer from "multer";
 import util from 'util';
 import fs from 'fs';
+import { imagekit } from "../cloudinary/imageKit.js";
+import fsPromises from 'fs/promises'
 
 const unlinkFile = util.promisify(fs.unlink);
 
@@ -59,8 +61,10 @@ router.post(
       try {
         const uploadedImageURLs = [];
         for (const image of images) {
-          const result = await cloudinary.uploader.upload(image.path);
-          uploadedImageURLs.push(result.secure_url);
+          const fileBuffer = await fsPromises.readFile(image.path);
+          const result = await imagekit
+            .upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer})
+            uploadedImageURLs.push(result.url)
         }
   
         const newTeam = new Team({
@@ -132,8 +136,10 @@ router.put('/updateTeam/:teamId', upload.array('images'),async (req,res) => {
   
       
       for (const image of images) {
-        const result = await cloudinary.uploader.upload(image.path);
-        uploadedImageURLs.push(result.secure_url);
+        const fileBuffer = await fsPromises.readFile(image.path);
+        const result = await imagekit
+          .upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer})
+          uploadedImageURLs.push(result.url)
       }
   
   

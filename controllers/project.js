@@ -1,34 +1,41 @@
 import { Project } from "../db/schemas/Project.js";
 import cloudinary from "../cloudinary/config.js";
-import util from 'util';
-import fs from 'fs';
+import util from "util";
+import fs from "fs";
+import { imagekit } from "../cloudinary/imageKit.js";
+import fsPromises from 'fs/promises'
 
 const unlinkFile = util.promisify(fs.unlink);
 
-
-
-
-
-export const getProjects = (req,res)=>{
-    Project.find({})
-    .then(result => res.json(result))
-    .catch(e => console.log(e))
-}
-
+export const getProjects = (req, res) => {
+  Project.find({})
+    .then((result) => res.json(result))
+    .catch((e) => console.log(e));
+};
 
 export const addProject = async (req, res) => {
-  const { title,credits, link, linkId ,genres} = req.body;
+  const { title, credits, link, linkId, genres } = req.body;
   const images = req.files;
-  
-  
+
   try {
     const uploadedImageURLs = [];
+    const imagesId = [];
 
     // Upload images to Cloudinary and save their URLs
-    for (const image of images) {
+    /* for (const image of images) {
       const result = await cloudinary.uploader.upload(image.path);
       uploadedImageURLs.push(result.secure_url);
+    } */
+
+    for (const image of images) {
+      const fileBuffer = await fsPromises.readFile(image.path);
+      const result = await imagekit
+        .upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer})
+        uploadedImageURLs.push(result.url)
+        imagesId.push(result.fileId)
     }
+
+  
 
     // Create a new project and save it to MongoDB
     const newProject = new Project({
@@ -38,81 +45,85 @@ export const addProject = async (req, res) => {
       title,
       images: uploadedImageURLs,
       genres,
-      frontImage: uploadedImageURLs[0]
+      frontImage: uploadedImageURLs[0],
+      imagesId: imagesId
     });
 
     await newProject.save();
 
     for (const image of images) {
       await unlinkFile(image.path);
-    };
+    }
 
-    res.status(201).json({ message: 'Project created successfully', newProject });
+    res
+      .status(201)
+      .json({ message: "Project created successfully", newProject });
   } catch (error) {
-    console.error('Error creating project:', error);
-    res.status(500).json({ error: 'Error creating project' });
+    console.error("Error creating project:", error);
+    res.status(500).json({ error: "Error creating project" });
   }
-}
+};
 
 export const deleteProject = async (req, res) => {
-
   try {
     const project = await Project.findById(req.params.projectId);
 
     if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: "Project not found" });
     }
 
     // Delete images from Cloudinary
-    for (const imageUrl of project.images) {
-      const publicId = imageUrl.split('/').pop().split('.')[0]; // Extract public ID from Cloudinary URL
+    /* for (const imageUrl of project.images) {
+      const publicId = imageUrl.split("/").pop().split(".")[0]; // Extract public ID from Cloudinary URL
       await cloudinary.uploader.destroy(publicId);
+    } */
+    for (const imageUrl of project.imagesId) {
+      imagekit.deleteFile(imageUrl, function(error, result) {
+        if(error) console.log(error);
+        else console.log(result);
+    })
     }
 
     // Delete project from MongoDB
     await Project.findByIdAndDelete(req.params.projectId);
 
-    res.status(200).json({ message: 'Project and associated images deleted' });
+    res.status(200).json({ message: "Project and associated images deleted" });
   } catch (error) {
-    console.error('Error deleting project:', error);
-    res.status(500).json({ error: 'Error deleting project and images' });
+    console.error("Error deleting project:", error);
+    res.status(500).json({ error: "Error deleting project and images" });
   }
-}
-
+};
 
 export const findProjectByGenre = async (req, res) => {
   try {
-    if (req.params.genre === 'all') {
-    const project = await Project.find({});
+    if (req.params.genre === "all") {
+      const project = await Project.find({});
       return res.status(200).json(project);
     }
-    const project = await Project.find({genres: {$in : [req.params.genre]}});
+    const project = await Project.find({ genres: { $in: [req.params.genre] } });
     if (!project) {
-      return res.status(404).json({ message: 'Project not found' });
+      return res.status(404).json({ message: "Project not found" });
     }
     res.status(200).json(project);
-}catch(error){
-  console.error('Error finding project by genre:', error);
-  res.status(500).json({ error: 'Error finding project by genre' });
-}
-}
+  } catch (error) {
+    console.error("Error finding project by genre:", error);
+    res.status(500).json({ error: "Error finding project by genre" });
+  }
+};
 
+export const updateProject = async (req, res) => {
+  const result = await Project.updateOne(
+    { _id: req.params.id },
+    { $set: req.body }
+  );
+  res.send(result);
+};
 
-
-export const updateProject = async(req,res)=>{
-    const result = await Project.updateOne(
-     {_id: req.params.id},
-     {$set : req.body}
-    )
-    res.send(result)
-   }    
-
-export const getOneProject = (req,res) => {
-    Project.findById(req.params.id)
-    .then(result => res.json(result))
-    .catch(e => console.log(e))
-}
-
+export const getOneProject = (req, res) => {
+  Project.findById(req.params.id)
+    .then((result) => res.json(result))
+    .catch((e) => console.log(e));
+};
 
 //get the data from the client
 //find the project by id check if it exists if it does not then return 404
@@ -120,37 +131,33 @@ export const getOneProject = (req,res) => {
 //add the uploded images to array of url's images
 //update the project in the DB
 
-
-export const myUpdateProject = async (req,res) => {
+export const myUpdateProject = async (req, res) => {
   const { projectId } = req.params;
-  const { title, credits, link, linkId ,urlImages,genres,frontImage} = req.body;
+  const { title, credits, link, linkId, urlImages, genres, frontImage } =
+    req.body;
   const images = req.files;
-  console.log(urlImages)
-  
-
+  console.log(urlImages);
 
   try {
-    const project = await Project.findById(projectId)
-    if(!project){
-      return res.status(404).json({message: 'Project not found'})
+    const project = await Project.findById(projectId);
+    if (!project) {
+      return res.status(404).json({ message: "Project not found" });
     }
 
     const uploadedImageURLs = [];
 
-    
     for (const image of images) {
-      const result = await cloudinary.uploader.upload(image.path);
-      uploadedImageURLs.push(result.secure_url);
+      const fileBuffer = await fsPromises.readFile(image.path);
+      const result = await imagekit
+        .upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer})
+        uploadedImageURLs.push(result.url)
     }
 
-
-    if (typeof urlImages === 'string') {
+    if (typeof urlImages === "string") {
       uploadedImageURLs.push(urlImages);
     } else if (Array.isArray(urlImages)) {
       uploadedImageURLs.push(...urlImages);
     }
-
-    
 
     project.images = uploadedImageURLs;
     project.title = title || project.title;
@@ -160,19 +167,21 @@ export const myUpdateProject = async (req,res) => {
     project.genres = genres || project.genres;
     project.frontImage = frontImage || project.frontImage;
 
-
     await project.save();
 
     for (const image of images) {
       await unlinkFile(image.path);
-    };
+    }
 
-    res.status(200).json({message: 'Project updated successfully', updatedProject: project})
-
-
-
-
+    res
+      .status(200)
+      .json({
+        message: "Project updated successfully",
+        updatedProject: project,
+      });
   } catch (error) {
-    res.status(500).json({ errorMessage: 'Error updating project' , error: error});
+    res
+      .status(500)
+      .json({ errorMessage: "Error updating project", error: error });
   }
-}
+};
