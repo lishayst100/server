@@ -14,33 +14,38 @@ export const getProjects = (req, res) => {
 };
 
 export const addProject = async (req, res) => {
-  const { title, credits, link, linkId, genres } = req.body;
-  const images = req.files;
-
+  const { title, credits, linkId, genres } = req.body;
+  const images = req.files['images'];
+  const videoFiles = req.files['video'];
+  
   try {
     const uploadedImageURLs = [];
     const imagesId = [];
 
-    // Upload images to Cloudinary and save their URLs
-    /* for (const image of images) {
-      const result = await cloudinary.uploader.upload(image.path);
-      uploadedImageURLs.push(result.secure_url);
-    } */
-
-    for (const image of images) {
-      const fileBuffer = await fsPromises.readFile(image.path);
-      const result = await imagekit
-        .upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer})
+    if (images) {
+      for (const image of images) {
+        const fileBuffer = await fsPromises.readFile(image.path);
+        const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer});
         uploadedImageURLs.push(result.url)
         imagesId.push(result.fileId)
+      }
     }
 
-  
+    let videoURL = null;
+    if (videoFiles) {
+      const videoFile = videoFiles[0];
+      const fileBuffer = await fsPromises.readFile(videoFile.path);
+      const response = await imagekit.upload({
+        file: fileBuffer,
+        fileName: videoFile.originalname,
+        useUniqueFileName: false,
+      });
+      videoURL = response.url;
+    }
 
-    // Create a new project and save it to MongoDB
     const newProject = new Project({
       credits,
-      link,
+      link: videoURL,
       linkId,
       title,
       images: uploadedImageURLs,
@@ -51,18 +56,23 @@ export const addProject = async (req, res) => {
 
     await newProject.save();
 
-    for (const image of images) {
-      await unlinkFile(image.path);
+    // Delete uploaded files after saving project
+    if (images) {
+      for (const image of images) {
+        await unlinkFile(image.path);
+      }
+    }
+    if (videoFiles) {
+      await unlinkFile(videoFiles[0].path);
     }
 
-    res
-      .status(201)
-      .json({ message: "Project created successfully", newProject });
+    res.status(201).json({ message: "Project created successfully", newProject });
   } catch (error) {
     console.error("Error creating project:", error);
     res.status(500).json({ error: "Error creating project" });
   }
 };
+
 
 export const deleteProject = async (req, res) => {
   try {
@@ -135,8 +145,8 @@ export const myUpdateProject = async (req, res) => {
   const { projectId } = req.params;
   const { title, credits, link, linkId, urlImages, genres, frontImage } =
     req.body;
-  const images = req.files;
-  console.log(urlImages);
+  const images = req.files['images'];
+  const videoFile = req.files['video'];
 
   try {
     const project = await Project.findById(projectId);
@@ -145,12 +155,12 @@ export const myUpdateProject = async (req, res) => {
     }
 
     const uploadedImageURLs = [];
-
-    for (const image of images) {
-      const fileBuffer = await fsPromises.readFile(image.path);
-      const result = await imagekit
-        .upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer})
-        uploadedImageURLs.push(result.url)
+    if (images) {
+      for (const image of images) {
+        const fileBuffer = await fsPromises.readFile(image.path);
+        const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false, file: fileBuffer });
+        uploadedImageURLs.push(result.url);
+      }
     }
 
     if (typeof urlImages === "string") {
@@ -159,29 +169,43 @@ export const myUpdateProject = async (req, res) => {
       uploadedImageURLs.push(...urlImages);
     }
 
+    let videoURL = null;
+    if (videoFile) {
+      const video = videoFile[0];
+      const fileBuffer = await fsPromises.readFile(video.path);
+      const response = await imagekit.upload({
+        file: fileBuffer,
+        fileName: video.originalname,
+        useUniqueFileName: false,
+      });
+      videoURL = response.url;
+    }
+
     project.images = uploadedImageURLs;
     project.title = title || project.title;
     project.credits = credits || project.credits;
-    project.link = link || project.link;
+    project.link = videoURL === null ? project.link : videoURL;
     project.linkId = linkId || project.linkId;
     project.genres = genres || project.genres;
     project.frontImage = frontImage || project.frontImage;
 
     await project.save();
 
-    for (const image of images) {
-      await unlinkFile(image.path);
+    if (images) {
+      for (const image of images) {
+        await unlinkFile(image.path);
+      }
+    }
+    if (videoFile) {
+      await unlinkFile(videoFile[0].path);
     }
 
-    res
-      .status(200)
-      .json({
-        message: "Project updated successfully",
-        updatedProject: project,
-      });
+    res.status(200).json({
+      message: "Project updated successfully",
+      updatedProject: project,
+    });
   } catch (error) {
-    res
-      .status(500)
-      .json({ errorMessage: "Error updating project", error: error });
+    console.error("Error updating project:", error);
+    res.status(500).json({ errorMessage: "Error updating project", error: error });
   }
 };
