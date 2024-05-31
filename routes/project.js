@@ -32,7 +32,8 @@ const upload = multer({
 
 const uploadFields = [
   { name: 'video', maxCount: 1 }, // For the video
-  { name: 'images', maxCount: 12 }  // For the images
+  { name: 'images', maxCount: 12 },  // For the images
+  { name: 'supplementaryVideos', maxCount: 10 }
 ];
 
 router.post('/upload/video', upload.fields(uploadFields), async(req, res) => {

@@ -10,8 +10,8 @@ const projectSchema = new mongoose.Schema({
     genres: [String],
     frontImage: String,
     imagesId: [String],
-
-    
+    supplementaryVideos:[String],
+    supplementaryVideosIds:[String],
   });
   
   export const Project = mongoose.model('Project', projectSchema);
