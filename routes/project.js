@@ -18,9 +18,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: {
-    fileSize: 100000000000,
-  },
   fileFilter(req, file, cb) {
     if (!file.originalname.match(/\.(png|jpg|jpeg|mp4)$/)) {
       return cb(new Error('Error upload file'));
@@ -33,7 +30,8 @@ const upload = multer({
 const uploadFields = [
   { name: 'video', maxCount: 1 }, // For the video
   { name: 'images', maxCount: 12 },  // For the images
-  { name: 'supplementaryVideos', maxCount: 10 }
+  { name: 'supplementaryVideos', maxCount: 10 },
+  {name: 'frontImage', maxCount:1}
 ];
 
 router.post('/upload/video', upload.fields(uploadFields), async(req, res) => {

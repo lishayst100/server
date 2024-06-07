@@ -18,7 +18,7 @@ export const addProject = async (req, res) => {
   const images = req.files['images'];
   const videoFiles = req.files['video'];
   const supplementaryVideos = req.files['supplementaryVideos'];
-  console.log(supplementaryVideos)
+  const frontImage = req.files['frontImage'];
 
   try {
     const uploadedImageURLs = [];
@@ -29,7 +29,7 @@ export const addProject = async (req, res) => {
     if (images) {
       for (const image of images) {
         const fileBuffer = await fsPromises.readFile(image.path);
-        const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false ,file:fileBuffer });
+        const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false, file: fileBuffer });
         uploadedImageURLs.push(result.url);
         imagesId.push(result.fileId);
       }
@@ -47,6 +47,23 @@ export const addProject = async (req, res) => {
       });
       mainVideoURL = response.url;
       mainVideoId = response.fileId;
+    }
+
+    // Declare mainFrontImageUrl and mainFrontImageId
+    let mainFrontImageUrl = null;
+    let mainFrontImageId = null;
+
+    if (frontImage) {
+      const masterImage = frontImage[0];
+      console.log(masterImage);
+      const fileBuffer = await fsPromises.readFile(masterImage.path);
+      const response = await imagekit.upload({
+        file: fileBuffer,
+        fileName: masterImage.originalname,
+        useUniqueFileName: false,
+      });
+      mainFrontImageUrl = response.url;
+      mainFrontImageId = response.fileId;
     }
 
     if (supplementaryVideos) {
@@ -69,7 +86,7 @@ export const addProject = async (req, res) => {
       title,
       images: uploadedImageURLs,
       genres,
-      frontImage: uploadedImageURLs[0],
+      frontImage: mainFrontImageUrl,
       imagesId: imagesId,
       videoIds: mainVideoId,  // Main video file ID
       supplementaryVideos: uploadedSupplementaryVideoURLs,  // Additional video URLs
@@ -87,6 +104,9 @@ export const addProject = async (req, res) => {
     if (videoFiles) {
       await unlinkFile(videoFiles[0].path);
     }
+    if (frontImage) {
+      await unlinkFile(frontImage[0].path);
+    }
     if (supplementaryVideos) {
       for (const videoFile of supplementaryVideos) {
         await unlinkFile(videoFile.path);
@@ -99,6 +119,7 @@ export const addProject = async (req, res) => {
     res.status(500).json({ error: "Error creating project" });
   }
 };
+
 
 
 export const deleteProject = async (req, res) => {
