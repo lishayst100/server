@@ -13,6 +13,8 @@ export const getProjects = (req, res) => {
     .catch((e) => console.log(e));
 };
 
+
+
 export const addProject = async (req, res) => {
   const { title, credits, linkId, genres } = req.body;
   const images = req.files['images'];
@@ -29,7 +31,11 @@ export const addProject = async (req, res) => {
     if (images) {
       for (const image of images) {
         const fileBuffer = await fsPromises.readFile(image.path);
-        const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false, file: fileBuffer });
+        const result = await imagekit.upload({
+          fileName: image.originalname,
+          isPrivateFile: false,
+          file: fileBuffer,
+        });
         uploadedImageURLs.push(result.url);
         imagesId.push(result.fileId);
       }
@@ -37,25 +43,17 @@ export const addProject = async (req, res) => {
 
     let mainVideoURL = null;
     let mainVideoId = null;
-    if (videoFiles) {
+    if (videoFiles && videoFiles.length > 0) {
       const videoFile = videoFiles[0];
-      const fileBuffer = await fsPromises.readFile(videoFile.path);
-      const response = await imagekit.upload({
-        file: fileBuffer,
-        fileName: videoFile.originalname,
-        useUniqueFileName: false,
-      });
-      mainVideoURL = response.url;
-      mainVideoId = response.fileId;
+      const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
+      mainVideoURL = upload.secure_url;
+      mainVideoId = upload.public_id;  // Assuming public_id as video ID
     }
 
-    // Declare mainFrontImageUrl and mainFrontImageId
     let mainFrontImageUrl = null;
     let mainFrontImageId = null;
-
-    if (frontImage) {
+    if (frontImage && frontImage.length > 0) {
       const masterImage = frontImage[0];
-      console.log(masterImage);
       const fileBuffer = await fsPromises.readFile(masterImage.path);
       const response = await imagekit.upload({
         file: fileBuffer,
@@ -88,30 +86,32 @@ export const addProject = async (req, res) => {
       genres,
       frontImage: mainFrontImageUrl,
       imagesId: imagesId,
-      videoIds: mainVideoId,  // Main video file ID
-      supplementaryVideos: uploadedSupplementaryVideoURLs,  // Additional video URLs
-      supplementaryVideoIds: supplementaryVideoIds  // Additional video file IDs
+      videoIds: mainVideoId,
+      supplementaryVideos: uploadedSupplementaryVideoURLs,
+      supplementaryVideoIds: supplementaryVideoIds,
     });
 
     await newProject.save();
 
     // Delete uploaded files after saving project
+    const deleteFiles = [];
     if (images) {
       for (const image of images) {
-        await unlinkFile(image.path);
+        deleteFiles.push(unlinkFile(image.path));
       }
     }
-    if (videoFiles) {
-      await unlinkFile(videoFiles[0].path);
+    if (videoFiles && videoFiles.length > 0) {
+      deleteFiles.push(unlinkFile(videoFiles[0].path));
     }
-    if (frontImage) {
-      await unlinkFile(frontImage[0].path);
+    if (frontImage && frontImage.length > 0) {
+      deleteFiles.push(unlinkFile(frontImage[0].path));
     }
     if (supplementaryVideos) {
       for (const videoFile of supplementaryVideos) {
-        await unlinkFile(videoFile.path);
+        deleteFiles.push(unlinkFile(videoFile.path));
       }
     }
+    await Promise.all(deleteFiles);
 
     res.status(201).json({ message: "Project created successfully", newProject });
   } catch (error) {
@@ -191,12 +191,11 @@ export const getOneProject = (req, res) => {
 
 export const myUpdateProject = async (req, res) => {
   const { projectId } = req.params;
-  const { title, credits, link, linkId, urlImages, genres, frontImage,urlVideos } =
-    req.body;
+  const { title, credits, link, linkId, urlImages, genres, frontImage, urlVideos } = req.body;
   const images = req.files['images'];
   const videoFile = req.files['video'];
   const videoFiles = req.files['supplementaryVideos'];
-  console.log(urlImages)
+  const frontImageFile = req.files['frontImage'];
 
   try {
     const project = await Project.findById(projectId);
@@ -206,19 +205,47 @@ export const myUpdateProject = async (req, res) => {
 
     const uploadedImageURLs = [];
     const uploadedVideosURLs = [];
+
     if (images) {
       for (const image of images) {
-        const fileBuffer = await fsPromises.readFile(image.path);
-        const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false, file: fileBuffer });
-        uploadedImageURLs.push(result.url);
+        try {
+          const fileBuffer = await fsPromises.readFile(image.path);
+          const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false, file: fileBuffer });
+          uploadedImageURLs.push(result.url);
+        } catch (error) {
+          console.error("Error uploading image:", error);
+          return res.status(500).json({ errorMessage: "Error uploading image", error: error });
+        }
       }
     }
 
+
+    let mainFrontImageUrl = null;
+    let mainFrontImageId = null;
+    if (frontImageFile && frontImageFile.length > 0) {
+      const masterImage = frontImageFile[0];
+      const fileBuffer = await fsPromises.readFile(masterImage.path);
+      const response = await imagekit.upload({
+        file: fileBuffer,
+        fileName: masterImage.originalname,
+        useUniqueFileName: false,
+      });
+      mainFrontImageUrl = response.url;
+      mainFrontImageId = response.fileId;
+    }
+
+
+
     if (videoFiles) {
       for (const video of videoFiles) {
-        const fileBuffer = await fsPromises.readFile(video.path);
-        const result = await imagekit.upload({ fileName: video.path, isPrivateFile: false, file: fileBuffer });
-        uploadedVideosURLs.push(result.url);
+        try {
+          const fileBuffer = await fsPromises.readFile(video.path);
+          const result = await imagekit.upload({ fileName: video.path, isPrivateFile: false, file: fileBuffer });
+          uploadedVideosURLs.push(result.url);
+        } catch (error) {
+          console.error("Error uploading supplementary video:", error);
+          return res.status(500).json({ errorMessage: "Error uploading supplementary video", error: error });
+        }
       }
     }
 
@@ -234,42 +261,51 @@ export const myUpdateProject = async (req, res) => {
       uploadedVideosURLs.push(...urlVideos);
     }
 
-    let videoURL = null;
-    if (videoFile) {
-      const video = videoFile[0];
-      const fileBuffer = await fsPromises.readFile(video.path);
-      const response = await imagekit.upload({
-        file: fileBuffer,
-        fileName: video.originalname,
-        useUniqueFileName: false,
-      });
-      videoURL = response.url;
+    let mainVideoURL = null;
+    let mainVideoId = null;
+    if (videoFile && videoFile.length > 0) {
+      try {
+        const video = videoFile[0];
+        const upload = await cloudinary.uploader.upload(video.path, { resource_type: 'video' });
+        mainVideoURL = upload.secure_url;
+        mainVideoId = upload.public_id;  // Assuming public_id as video ID
+      } catch (error) {
+        console.error("Error uploading main video:", error);
+        return res.status(500).json({ errorMessage: "Error uploading main video", error: error });
+      }
     }
 
     project.images = uploadedImageURLs;
     project.supplementaryVideos = uploadedVideosURLs;
     project.title = title || project.title;
     project.credits = credits || project.credits;
-    project.link = videoURL === null ? project.link : videoURL;
+    project.link = mainVideoURL === null ? project.link : mainVideoURL;
     project.linkId = linkId || project.linkId;
     project.genres = genres || project.genres;
-    project.frontImage = frontImage || project.frontImage;
+    project.frontImage = mainFrontImageUrl || project.frontImage;
 
     await project.save();
 
+    const unlinkPromises = [];
+
     if (images) {
       for (const image of images) {
-        await unlinkFile(image.path);
+        unlinkPromises.push(unlinkFile(image.path));
       }
     }
     if (videoFiles) {
-      for (const image of videoFiles) {
-        await unlinkFile(image.path);
+      for (const video of videoFiles) {
+        unlinkPromises.push(unlinkFile(video.path));
       }
     }
     if (videoFile) {
-      await unlinkFile(videoFile[0].path);
+      unlinkPromises.push(unlinkFile(videoFile[0].path));
     }
+    if (frontImage) {
+      unlinkPromises.push(unlinkFile(frontImage[0].path));
+    }
+
+    await Promise.all(unlinkPromises);
 
     res.status(200).json({
       message: "Project updated successfully",
