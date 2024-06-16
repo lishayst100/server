@@ -28,21 +28,8 @@ export const addProject = async (req, res) => {
     const uploadedSupplementaryVideoURLs = [];
     const supplementaryVideoIds = [];
 
-    const checkFileExists = async (filePath) => {
-      try {
-        await fsPromises.access(filePath, fs.constants.F_OK);
-        return true;
-      } catch (err) {
-        console.error(`File not found: ${filePath}`);
-        return false;
-      }
-    };
-
     if (images) {
       for (const image of images) {
-        const exists = await checkFileExists(image.path);
-        if (!exists) throw new Error(`Image file not found: ${image.path}`);
-
         const fileBuffer = await fsPromises.readFile(image.path);
         const result = await imagekit.upload({
           fileName: image.originalname,
@@ -58,21 +45,15 @@ export const addProject = async (req, res) => {
     let mainVideoId = null;
     if (videoFiles && videoFiles.length > 0) {
       const videoFile = videoFiles[0];
-      const exists = await checkFileExists(videoFile.path);
-      if (!exists) throw new Error(`Main video file not found: ${videoFile.path}`);
-
       const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
       mainVideoURL = upload.secure_url;
-      mainVideoId = upload.public_id;
+      mainVideoId = upload.public_id;  // Assuming public_id as video ID
     }
 
     let mainFrontImageUrl = null;
     let mainFrontImageId = null;
     if (frontImage && frontImage.length > 0) {
       const masterImage = frontImage[0];
-      const exists = await checkFileExists(masterImage.path);
-      if (!exists) throw new Error(`Front image file not found: ${masterImage.path}`);
-
       const fileBuffer = await fsPromises.readFile(masterImage.path);
       const response = await imagekit.upload({
         file: fileBuffer,
@@ -85,12 +66,9 @@ export const addProject = async (req, res) => {
 
     if (supplementaryVideos) {
       for (const videoFile of supplementaryVideos) {
-        const exists = await checkFileExists(videoFile.path);
-        if (!exists) throw new Error(`Supplementary video file not found: ${videoFile.path}`);
-
         const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
         uploadedSupplementaryVideoURLs.push(upload.secure_url);
-        supplementaryVideoIds.push(upload.public_id);
+        
       }
     }
 
@@ -110,6 +88,7 @@ export const addProject = async (req, res) => {
 
     await newProject.save();
 
+    // Delete uploaded files after saving project
     const deleteFiles = [];
     if (images) {
       for (const image of images) {
