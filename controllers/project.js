@@ -30,7 +30,7 @@ export const addProject = async (req, res) => {
 
     const checkFileExists = async (filePath) => {
       try {
-        await fsPromises.access(filePath, fsPromises.constants.F_OK);
+        await fsPromises.access(filePath, fs.constants.F_OK);
         return true;
       } catch (err) {
         console.error(`File not found: ${filePath}`);
