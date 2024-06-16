@@ -30,45 +30,64 @@ export const addProject = async (req, res) => {
 
     if (images) {
       for (const image of images) {
-        const fileBuffer = await fsPromises.readFile(image.path);
-        const result = await imagekit.upload({
-          fileName: image.originalname,
-          isPrivateFile: false,
-          file: fileBuffer,
-        });
-        uploadedImageURLs.push(result.url);
-        imagesId.push(result.fileId);
+        try {
+          const fileBuffer = await fsPromises.readFile(image.path);
+          const result = await imagekit.upload({
+            fileName: image.originalname,
+            isPrivateFile: false,
+            file: fileBuffer,
+          });
+          uploadedImageURLs.push(result.url);
+          imagesId.push(result.fileId);
+        } catch (err) {
+          console.error(`Error uploading image ${image.originalname}:`, err);
+          throw new Error(`Failed to upload image: ${image.originalname}`);
+        }
       }
     }
 
     let mainVideoURL = null;
     let mainVideoId = null;
     if (videoFiles && videoFiles.length > 0) {
-      const videoFile = videoFiles[0];
-      const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
-      mainVideoURL = upload.secure_url;
-      mainVideoId = upload.public_id;  // Assuming public_id as video ID
+      try {
+        const videoFile = videoFiles[0];
+        const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
+        mainVideoURL = upload.secure_url;
+        mainVideoId = upload.public_id;
+      } catch (err) {
+        console.error(`Error uploading main video:`, err);
+        throw new Error('Failed to upload main video');
+      }
     }
 
     let mainFrontImageUrl = null;
     let mainFrontImageId = null;
     if (frontImage && frontImage.length > 0) {
-      const masterImage = frontImage[0];
-      const fileBuffer = await fsPromises.readFile(masterImage.path);
-      const response = await imagekit.upload({
-        file: fileBuffer,
-        fileName: masterImage.originalname,
-        useUniqueFileName: false,
-      });
-      mainFrontImageUrl = response.url;
-      mainFrontImageId = response.fileId;
+      try {
+        const masterImage = frontImage[0];
+        const fileBuffer = await fsPromises.readFile(masterImage.path);
+        const response = await imagekit.upload({
+          file: fileBuffer,
+          fileName: masterImage.originalname,
+          useUniqueFileName: false,
+        });
+        mainFrontImageUrl = response.url;
+        mainFrontImageId = response.fileId;
+      } catch (err) {
+        console.error(`Error uploading front image:`, err);
+        throw new Error('Failed to upload front image');
+      }
     }
 
     if (supplementaryVideos) {
       for (const videoFile of supplementaryVideos) {
-        const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
-        uploadedSupplementaryVideoURLs.push(upload.secure_url);
-        
+        try {
+          const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
+          uploadedSupplementaryVideoURLs.push(upload.secure_url);
+        } catch (err) {
+          console.error(`Error uploading supplementary video:`, err);
+          throw new Error(`Failed to upload supplementary video: ${videoFile.originalname}`);
+        }
       }
     }
 
@@ -88,7 +107,6 @@ export const addProject = async (req, res) => {
 
     await newProject.save();
 
-    // Delete uploaded files after saving project
     const deleteFiles = [];
     if (images) {
       for (const image of images) {
