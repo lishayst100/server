@@ -28,66 +28,69 @@ export const addProject = async (req, res) => {
     const uploadedSupplementaryVideoURLs = [];
     const supplementaryVideoIds = [];
 
+    const checkFileExists = async (filePath) => {
+      try {
+        await fsPromises.access(filePath, fsPromises.constants.F_OK);
+        return true;
+      } catch (err) {
+        console.error(`File not found: ${filePath}`);
+        return false;
+      }
+    };
+
     if (images) {
       for (const image of images) {
-        try {
-          const fileBuffer = await fsPromises.readFile(image.path);
-          const result = await imagekit.upload({
-            fileName: image.originalname,
-            isPrivateFile: false,
-            file: fileBuffer,
-          });
-          uploadedImageURLs.push(result.url);
-          imagesId.push(result.fileId);
-        } catch (err) {
-          console.error(`Error uploading image ${image.originalname}:`, err);
-          throw new Error(`Failed to upload image: ${image.originalname}`);
-        }
+        const exists = await checkFileExists(image.path);
+        if (!exists) throw new Error(`Image file not found: ${image.path}`);
+
+        const fileBuffer = await fsPromises.readFile(image.path);
+        const result = await imagekit.upload({
+          fileName: image.originalname,
+          isPrivateFile: false,
+          file: fileBuffer,
+        });
+        uploadedImageURLs.push(result.url);
+        imagesId.push(result.fileId);
       }
     }
 
     let mainVideoURL = null;
     let mainVideoId = null;
     if (videoFiles && videoFiles.length > 0) {
-      try {
-        const videoFile = videoFiles[0];
-        const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
-        mainVideoURL = upload.secure_url;
-        mainVideoId = upload.public_id;
-      } catch (err) {
-        console.error(`Error uploading main video:`, err);
-        throw new Error('Failed to upload main video');
-      }
+      const videoFile = videoFiles[0];
+      const exists = await checkFileExists(videoFile.path);
+      if (!exists) throw new Error(`Main video file not found: ${videoFile.path}`);
+
+      const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
+      mainVideoURL = upload.secure_url;
+      mainVideoId = upload.public_id;
     }
 
     let mainFrontImageUrl = null;
     let mainFrontImageId = null;
     if (frontImage && frontImage.length > 0) {
-      try {
-        const masterImage = frontImage[0];
-        const fileBuffer = await fsPromises.readFile(masterImage.path);
-        const response = await imagekit.upload({
-          file: fileBuffer,
-          fileName: masterImage.originalname,
-          useUniqueFileName: false,
-        });
-        mainFrontImageUrl = response.url;
-        mainFrontImageId = response.fileId;
-      } catch (err) {
-        console.error(`Error uploading front image:`, err);
-        throw new Error('Failed to upload front image');
-      }
+      const masterImage = frontImage[0];
+      const exists = await checkFileExists(masterImage.path);
+      if (!exists) throw new Error(`Front image file not found: ${masterImage.path}`);
+
+      const fileBuffer = await fsPromises.readFile(masterImage.path);
+      const response = await imagekit.upload({
+        file: fileBuffer,
+        fileName: masterImage.originalname,
+        useUniqueFileName: false,
+      });
+      mainFrontImageUrl = response.url;
+      mainFrontImageId = response.fileId;
     }
 
     if (supplementaryVideos) {
       for (const videoFile of supplementaryVideos) {
-        try {
-          const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
-          uploadedSupplementaryVideoURLs.push(upload.secure_url);
-        } catch (err) {
-          console.error(`Error uploading supplementary video:`, err);
-          throw new Error(`Failed to upload supplementary video: ${videoFile.originalname}`);
-        }
+        const exists = await checkFileExists(videoFile.path);
+        if (!exists) throw new Error(`Supplementary video file not found: ${videoFile.path}`);
+
+        const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
+        uploadedSupplementaryVideoURLs.push(upload.secure_url);
+        supplementaryVideoIds.push(upload.public_id);
       }
     }
 

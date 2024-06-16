@@ -3,16 +3,27 @@ import {  deleteProject, getProjects,getOneProject, addProject, myUpdateProject,
 import multer from "multer";
 import { imagekit } from "../cloudinary/imageKit.js";
 import fsPromises from 'fs/promises'
+import fs from 'fs';
+import path from 'path';
 
 const router = Router()
 
+
+
+
+// Ensure the tmp directory exists
+const tmpDir = path.join(__dirname, 'tmp');
+if (!fs.existsSync(tmpDir)) {
+  fs.mkdirSync(tmpDir, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'tmp/');
+    cb(null, tmpDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now();
-    cb(null, uniqueSuffix + file.originalname);
+    cb(null, uniqueSuffix + '-' + file.originalname);
   },
 });
 
@@ -20,40 +31,18 @@ const upload = multer({
   storage: storage,
   fileFilter(req, file, cb) {
     if (!file.originalname.match(/\.(png|jpg|jpeg|mp4)$/)) {
-      return cb(new Error('Error upload file'));
+      return cb(new Error('Error uploading file: Invalid file type.'));
     }
     cb(undefined, true);
   },
 });
 
-
 const uploadFields = [
-  { name: 'video', maxCount: 1 }, // For the video
-  { name: 'images', maxCount: 12 },  // For the images
-  { name: 'supplementaryVideos', maxCount: 10 },
-  {name: 'frontImage', maxCount:1}
+  { name: 'images', maxCount: 10 },
+  { name: 'video', maxCount: 1 },
+  { name: 'supplementaryVideos', maxCount: 5 },
+  { name: 'frontImage', maxCount: 1 },
 ];
-
-router.post('/upload/video', upload.fields(uploadFields), async(req, res) => {
-  const videoFile = req.files['video'][0]; // Get the video file
-  const imageFiles = req.files['images']; // Get the array of image files
-  try {
-    const fileBuffer = await fsPromises.readFile(videoFile.path);
-    const response = await imagekit.upload({
-      file: fileBuffer,
-      fileName: videoFile.originalname,
-      useUniqueFileName: false,
-    });
-
-    console.log('Video uploaded to ImageKit:', response);
-
-    // Handle any further processing or response to the client
-    res.send('Video uploaded to ImageKit successfully!');
-  } catch (error) {
-    console.error('Error uploading video to ImageKit:', error);
-    res.status(500).send('Error uploading video to ImageKit');
-  }
-});
 
 router.get('/getProjects',getProjects)
 
@@ -63,7 +52,18 @@ router.get('/findProjectByGenre/:genre', findProjectByGenre)
 
 router.delete('/deleteProject/:projectId', deleteProject);
 
-router.post('/addProject',upload.fields(uploadFields) , addProject);
+router.post('/addProject', upload.fields(uploadFields), (req, res, next) => {
+  upload.fields(uploadFields)(req, res, (err) => {
+    if (err instanceof multer.MulterError) {
+      // Handle multer-specific errors
+      return res.status(400).json({ error: err.message });
+    } else if (err) {
+      // Handle other errors
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, addProject);
 
 router.put('/myUpdateProject/:projectId', upload.fields(uploadFields), myUpdateProject);
 
