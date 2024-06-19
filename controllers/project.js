@@ -21,23 +21,47 @@ export const addProject = async (req, res) => {
   const videoFiles = req.files['video'];
   const supplementaryVideos = req.files['supplementaryVideos'];
   const frontImage = req.files['frontImage'];
+  const frontImages = req.files['frontImages'];
 
   try {
     const uploadedImageURLs = [];
     const imagesId = [];
     const uploadedSupplementaryVideoURLs = [];
     const supplementaryVideoIds = [];
+    const frontImagesUrls = []
+
+    console.log("frontImages: ", frontImages); // Debugging
 
     if (images) {
       for (const image of images) {
         const fileBuffer = await fsPromises.readFile(image.path);
+        console.log("File Buffer Read: ", fileBuffer); // Debugging
         const result = await imagekit.upload({
           fileName: image.originalname,
           isPrivateFile: false,
           file: fileBuffer,
         });
+        console.log("ImageKit Upload Result: ", result); // Debugging
         uploadedImageURLs.push(result.url);
         imagesId.push(result.fileId);
+      }
+    }
+
+    if (frontImages) {
+      for (const image of frontImages) {
+        try {
+          const fileBuffer = await fsPromises.readFile(image.path);
+          console.log("File Buffer Read for Front Image: ", fileBuffer); // Debugging
+          const result = await imagekit.upload({
+            fileName: image.originalname,
+            isPrivateFile: false,
+            file: fileBuffer,
+          });
+          console.log("ImageKit Upload Result for Front Image: ", result); // Debugging
+          frontImagesUrls.push(result.url);
+        } catch (error) {
+          console.error("Error uploading front image: ", error);
+        }
       }
     }
 
@@ -68,9 +92,9 @@ export const addProject = async (req, res) => {
       for (const videoFile of supplementaryVideos) {
         const upload = await cloudinary.uploader.upload(videoFile.path, { resource_type: 'video' });
         uploadedSupplementaryVideoURLs.push(upload.secure_url);
-        
       }
     }
+    console.log(frontImagesUrls); // Debugging
 
     const newProject = new Project({
       credits,
@@ -84,6 +108,7 @@ export const addProject = async (req, res) => {
       videoIds: mainVideoId,
       supplementaryVideos: uploadedSupplementaryVideoURLs,
       supplementaryVideoIds: supplementaryVideoIds,
+      frontImages: frontImagesUrls
     });
 
     await newProject.save();
@@ -106,6 +131,11 @@ export const addProject = async (req, res) => {
         deleteFiles.push(unlinkFile(videoFile.path));
       }
     }
+    if (frontImages) {
+      for (const front of frontImages) {
+        deleteFiles.push(unlinkFile(front.path));
+      }
+    }
     await Promise.all(deleteFiles);
 
     res.status(201).json({ message: "Project created successfully", newProject });
@@ -114,6 +144,7 @@ export const addProject = async (req, res) => {
     res.status(500).json({ error: "Error creating project" });
   }
 };
+
 
 
 

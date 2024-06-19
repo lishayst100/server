@@ -12,6 +12,7 @@ const projectSchema = new mongoose.Schema({
     imagesId: [String],
     supplementaryVideos:[String],
     supplementaryVideosIds:[String],
+    frontImages:[String],
   });
   
   export const Project = mongoose.model('Project', projectSchema);
