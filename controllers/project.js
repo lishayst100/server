@@ -16,7 +16,7 @@ export const getProjects = (req, res) => {
 
 
 export const addProject = async (req, res) => {
-  const { title, credits, linkId, genres } = req.body;
+  const { title, credits, linkId, genres, isLooping } = req.body;
   const images = req.files['images'];
   const videoFiles = req.files['video'];
   const supplementaryVideos = req.files['supplementaryVideos'];
@@ -108,7 +108,8 @@ export const addProject = async (req, res) => {
       videoIds: mainVideoId,
       supplementaryVideos: uploadedSupplementaryVideoURLs,
       supplementaryVideoIds: supplementaryVideoIds,
-      frontImages: frontImagesUrls
+      frontImages: frontImagesUrls,
+      isLooping: isLooping // Convert string to boolean if needed
     });
 
     await newProject.save();
@@ -217,11 +218,12 @@ export const getOneProject = (req, res) => {
 
 export const myUpdateProject = async (req, res) => {
   const { projectId } = req.params;
-  const { title, credits, link, linkId, urlImages, genres, frontImage, urlVideos } = req.body;
+  const { title, credits, link, linkId, urlImages, genres, urlVideos, frontImagesVideosUrl, isLooping } = req.body;
   const images = req.files ? req.files['images'] : undefined;
   const videoFile = req.files ? req.files['video'] : undefined;
   const videoFiles = req.files ? req.files['supplementaryVideos'] : undefined;
   const frontImageFile = req.files ? req.files['frontImage'] : undefined;
+  const frontImages = req.files ? req.files['frontImages'] : undefined;
 
   try {
     const project = await Project.findById(projectId);
@@ -230,6 +232,7 @@ export const myUpdateProject = async (req, res) => {
     }
 
     const uploadedImageURLs = [];
+    const uploadedFrontImagesURLs = [];
     const uploadedVideosURLs = [];
 
     if (images) {
@@ -239,6 +242,20 @@ export const myUpdateProject = async (req, res) => {
             const fileBuffer = await fsPromises.readFile(image.path);
             const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false, file: fileBuffer });
             uploadedImageURLs.push(result.url);
+          } catch (error) {
+            console.error("Error uploading image:", error);
+            return res.status(500).json({ errorMessage: "Error uploading image", error: error });
+          }
+        }
+      }
+    }
+    if (frontImages) {
+      for (const image of frontImages) {
+        if (image.path) {
+          try {
+            const fileBuffer = await fsPromises.readFile(image.path);
+            const result = await imagekit.upload({ fileName: image.path, isPrivateFile: false, file: fileBuffer });
+            uploadedFrontImagesURLs.push(result.url);
           } catch (error) {
             console.error("Error uploading image:", error);
             return res.status(500).json({ errorMessage: "Error uploading image", error: error });
@@ -283,6 +300,11 @@ export const myUpdateProject = async (req, res) => {
     } else if (Array.isArray(urlImages)) {
       uploadedImageURLs.push(...urlImages);
     }
+    if (typeof frontImagesVideosUrl === "string") {
+      uploadedFrontImagesURLs.push(frontImagesVideosUrl);
+    } else if (Array.isArray(frontImagesVideosUrl)) {
+      uploadedFrontImagesURLs.push(...frontImagesVideosUrl);
+    }
 
     if (typeof urlVideos === "string") {
       uploadedVideosURLs.push(urlVideos);
@@ -310,6 +332,8 @@ export const myUpdateProject = async (req, res) => {
     project.linkId = linkId || project.linkId;
     project.genres = genres || project.genres;
     project.frontImage = mainFrontImageUrl || project.frontImage;
+    project.frontImages = uploadedFrontImagesURLs || project.frontImages;
+    project.isLooping = isLooping !== undefined ? isLooping : project.isLooping; // Update isLooping field
 
     await project.save();
 
@@ -334,6 +358,9 @@ export const myUpdateProject = async (req, res) => {
     }
     if (frontImageFile && frontImageFile[0].path) {
       unlinkPromises.push(unlinkFile(frontImageFile[0].path));
+    }
+    if (frontImages && frontImages[0].path) {
+      unlinkPromises.push(unlinkFile(frontImages[0].path));
     }
 
     await Promise.all(unlinkPromises);

@@ -13,6 +13,7 @@ const projectSchema = new mongoose.Schema({
     supplementaryVideos:[String],
     supplementaryVideosIds:[String],
     frontImages:[String],
+    isLooping: Boolean
   });
   
   export const Project = mongoose.model('Project', projectSchema);
