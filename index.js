@@ -9,6 +9,7 @@ import { carouselRouter } from "./routes/carousel.js";
 import { teamRouter } from "./routes/team.js";
 import { textRouter } from "./routes/text.js";
 import { arrangedProjects } from "./routes/arrangeProject.js";
+import { showreelRouter } from "./routes/showreel.js";
 
 const app = express()
 connect().catch(e => console.log(e))
@@ -29,6 +30,7 @@ app.use('/api/carousel', carouselRouter)
 app.use('/api/team', teamRouter)
 app.use('/api/text', textRouter)
 app.use('/api/arrange', arrangedProjects)
+app.use('/api/showreel', showreelRouter)
 
 const PORT = 3001 
 
