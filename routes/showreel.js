@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { addShowreel, getShowreel, updateShowreel } from "../controllers/showreel.js";
+import { addShowreel, editShowreel, getShowreel, updateShowreel } from "../controllers/showreel.js";
 import multer from "multer";
 import { Showreel } from "../db/schemas/Showreel.js";
 
@@ -34,7 +34,7 @@ const storage = multer.diskStorage({
 
 router.post('/addShowreel' , upload.fields(uploadField) , addShowreel)
 router.get('/getShowreel' , getShowreel)
-router.put('/updateShowreel/:showreelId' ,upload.fields(uploadField), updateShowreel)
+router.put('/updateShowreel/:showreelId' , editShowreel)
 router.get('/getShowreel/:id', function(req, res){
     Showreel.findById(req.params.id)
     .then(result => res.json(result))

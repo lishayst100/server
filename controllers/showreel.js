@@ -103,3 +103,28 @@ export const updateShowreel = async (req, res) => {
 };
 
 
+export const editShowreel = async (req, res) => {
+  const { showreelText } = req.body; 
+  const { showreelId } = req.params;
+
+  try {
+    const showreel = await Showreel.findById(showreelId);
+    if (!showreel) {
+      return res.status(404).json({ message: "Showreel not found" });
+    }
+
+    // Update the link field if showreelText is not null
+    showreel.link = showreelText === null ? showreel.link : showreelText;
+
+    // Save the updated showreel
+    await showreel.save();
+
+    res.status(200).json({
+      message: "Showreel updated successfully",
+      updatedShowreel: showreel,
+    });
+  } catch (error) {
+    console.error("Error updating showreel:", error);
+    res.status(500).json({ errorMessage: "Error updating showreel", error: error });
+  }
+};
