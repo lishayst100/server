@@ -4,7 +4,8 @@ const TeamSchema = new Schema({
     name: String,
     title: String,
     desc: String,
-    img: [String]
+    img: [String],
+    linkId: String
 })
 
 

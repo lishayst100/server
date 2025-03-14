@@ -56,7 +56,7 @@ router.post(
     upload.array("images"),
     async (req, res) => {
       const images = req.files;
-      const {name,title,desc } = req.body
+      const {name,title,desc,linkId } = req.body
   
       try {
         const uploadedImageURLs = [];
@@ -71,7 +71,8 @@ router.post(
           name:name,
           desc:desc,
           img: uploadedImageURLs,
-          title:title
+          title:title,
+          linkId: linkId
         });
   
         await newTeam.save();
